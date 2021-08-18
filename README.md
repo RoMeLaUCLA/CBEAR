@@ -1,4 +1,5 @@
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
+[![Build Status](https://www.travis-ci.com/aminsung/CBEAR.svg?branch=main)](https://www.travis-ci.com/aminsung/CBEAR)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/aminsung/CBEAR2/blob/master/LICENSE)
 
 # CBEAR
