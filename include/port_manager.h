@@ -20,7 +20,7 @@ class PortManager {
    *
    * Initialize the PortManager.
    */
-  PortManager(const char *port_name, const int baudrate);
+  PortManager(const char *port_name, const int baudrate, const bool debug=true);
 
   /*! \brief Destruct the PortManager.
    *
@@ -41,6 +41,12 @@ class PortManager {
    * Close the port
    */
   void ClosePort();
+
+  /*! \brief Checks if the port has been opened
+   *
+   * Checks if the port has been opened
+   */
+  bool IsPortOpen();
 
   /*! \brief Clear the port.
    *
@@ -105,6 +111,7 @@ class PortManager {
  private:
   int socket_fd;
   int baudrate_;
+  const bool debug_mode_;
   char port_name_[100];
 
   double packet_start_time;

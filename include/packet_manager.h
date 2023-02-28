@@ -31,8 +31,9 @@ namespace bear {
 class PacketManager {
  private:
   static PacketManager *unique_instance_;
+  const bool debug_mode_;
  public:
-  PacketManager();
+  PacketManager(const bool debug=true);
 
   /*! \brief Get PacketManager instance.
      *

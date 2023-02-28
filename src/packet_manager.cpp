@@ -38,12 +38,12 @@
 
 using namespace bear;
 
-PacketManager::PacketManager() {}
+PacketManager::PacketManager(const bool debug) : debug_mode_(debug) {}
 
 void PacketManager::BuildPacket(uint8_t *packet) {
   uint8_t checksum = 0;
   uint8_t total_pkt_len = packet[PKT_LENGTH] + 4; // [HEADER0, HEADER1, ID, LENGTH] + ...
-  uint8_t write_pkt_len = 0;
+//   uint8_t write_pkt_len = 0;
 
   // Make packet header
   packet[PKT_HEADER0] = 0xFF;
@@ -191,11 +191,11 @@ int PacketManager::ReadPacket(PortManager *port, uint8_t *packet) {
 
 int PacketManager::ReadBulkPacket(PortManager *port, uint8_t num_motors, uint8_t *packet) {
   // Read bulk packet (manual for now) // TODO: Fix to adaptive
-  uint8_t checksum = 0;
+//   uint8_t checksum = 0;
   uint8_t rx_len = 0;
   uint8_t wait_len = 4; // [HEADER0, HEADER1, ID, LENGTH, ..., ...]
 
-  int ticker_initial = 0;
+//   int ticker_initial = 0;
   while (true) {
     rx_len += port->ReadPort(&packet[rx_len], wait_len - rx_len);
 
@@ -316,12 +316,12 @@ int PacketManager::ping(PortManager *port, uint8_t id, uint8_t *error) {
 
 int PacketManager::save(bear::PortManager *port, uint8_t id, uint8_t *error) {
   // Status: Done
-
+  (void) error;
   int result(COMM_TX_FAIL);
 
   // Create packet containers
   uint8_t pkt_tx[6]{};
-  uint8_t pkt_rx[RX_PKT_MAX_LEN]{};
+//   uint8_t pkt_rx[RX_PKT_MAX_LEN]{};
 
   pkt_tx[PKT_ID] = id;
   pkt_tx[PKT_LENGTH] = 2; // No data packets for save
@@ -401,6 +401,7 @@ int PacketManager::WriteStatusRegister(bear::PortManager *port, uint8_t id, uint
    * - [ ] Create little-endian creating functionality
    */
 //    if (address < 3)
+(void) error;
   uint8_t data_packed[4] = {GEN_LOBYTE(GEN_LOWORD(data)), GEN_HIBYTE(GEN_LOWORD(data)), GEN_LOBYTE(GEN_HIWORD(data)),
                             GEN_HIBYTE(GEN_HIWORD(data))}; // TODO: Create little-endian creating functionality
 
@@ -422,6 +423,7 @@ int PacketManager::WriteConfigRegister(bear::PortManager *port, uint8_t id, uint
    *
    * - [ ] Create little-endian creating functionality
    */
+  (void) error;
   uint8_t data_packed[4];
   data_packed[0] = (data >> 0) & 0xFF;
   data_packed[1] = (data >> 8) & 0xFF;
@@ -570,6 +572,7 @@ int PacketManager::BulkCommunication(PortManager *port,
                                      std::vector<std::vector<uint32_t>> data_write,
                                      std::vector<std::vector<float>> &ret_vec,
                                      uint8_t *error) {
+  (void) error;
   int result{COMM_TX_FAIL};
 
   uint8_t checksum = 0;
@@ -664,7 +667,8 @@ int PacketManager::BulkCommunication(PortManager *port,
         break;
       free(pkt_rx);
       ++mdx;
-      std::cout << "[ ! ] Trying again!" << std::endl;
+      if (debug_mode_)
+        std::cout << "[ ! ] Trying again!" << std::endl;
     }
     if (mdx == MAX_COMM_ATTEMPT) {
       result = COMM_RX_FAIL;
@@ -680,15 +684,18 @@ int PacketManager::BulkCommunication(PortManager *port,
 //    std::cout << std::endl;
 
     std::vector<float> ret_single;
+    *error = 128;
     for (uint8_t ii = 0; ii < num_motors; ii++) {
       uint8_t m_offset = ii * len_ret_pkt;
 
       ret_single.push_back(pkt_rx[m_offset + PKT_ID]);
       uint8_t err_single = pkt_rx[m_offset + PKT_ERROR];
       if (err_single != 128) { // if not normal, cut the list short
-        ret_single.push_back(err_single);
-        std::cout << "Error in the return packet: " << int(err_single) << std::endl;
-        continue;
+        // ret_single.push_back(err_single);
+        *error = err_single;
+        if (debug_mode_)
+            std::cout << "Error for motor " << int(pkt_rx[m_offset + PKT_ID]) << " in the return packet: " << int(err_single-128) << std::endl;
+        // continue;
       }
 
       for (uint8_t jj = 0; jj < num_read_regs; jj++) {

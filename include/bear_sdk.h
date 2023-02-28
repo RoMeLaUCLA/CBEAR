@@ -13,9 +13,11 @@
 namespace bear {
 class BEAR {
  public:
-  BEAR(const char *portName, int baudrate);
+  BEAR(const char *portName, int baudrate, const bool autoconnect=true, const bool debug=true);
 
-  void connect();
+  bool Connect();
+  void Disconnect();
+  bool IsConnected();
 
   /*! Observe the error code present in the chain.
    *
@@ -181,8 +183,9 @@ class BEAR {
    * ****************** */
   static uint32_t floatToUint32(float input);
 
- private:
+private:
   const char *portName_;
+  const bool debug_mode_;
   int baudrate_;
   uint8_t bear_error;
   bear::PacketManager packetManager_;

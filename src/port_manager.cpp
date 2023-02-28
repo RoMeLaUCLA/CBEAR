@@ -11,9 +11,10 @@
 
 using namespace bear;
 
-PortManager::PortManager(const char *port_name, const int baudrate)
+PortManager::PortManager(const char *port_name, const int baudrate, const bool debug)
     : socket_fd{-1},
       baudrate_{baudrate},
+      debug_mode_(debug),
       packet_start_time{0.0},
       packet_timeout{0.0},
       tx_time_per_byte{0.0} {
@@ -29,6 +30,11 @@ void PortManager::ClosePort() {
   if (socket_fd != -1)
     close(socket_fd);
   socket_fd = -1;
+}
+
+bool PortManager::IsPortOpen()
+{
+    return socket_fd != -1;
 }
 
 void PortManager::ClearPort() {
@@ -86,7 +92,8 @@ bool PortManager::SetupPort(const int cflag_baud) {
 
   socket_fd = open(port_name_, O_RDWR | O_NOCTTY | O_NONBLOCK);
   if (socket_fd < 0) {
-    printf("[ CBEAR ] <PortManager::SetupPort> Error opening serial port!\n");
+    if (debug_mode_)
+        printf("[ CBEAR ] <PortManager::SetupPort> Error opening serial port!\n");
     return false;
   }
   bzero(&tioNew, sizeof(tioNew)); // Clear the struct for new port settings
@@ -109,7 +116,8 @@ bool PortManager::SetupPort(const int cflag_baud) {
 bool PortManager::SetCustomBaudrate(int speed) {
   struct serial_struct ss;
   if (ioctl(socket_fd, TIOCGSERIAL, &ss) != 0) {
-    printf("[ CBEAR ] <PortManager::SetCustomBaudrate> TIOCGSERIAL failed!\n");
+    if (debug_mode_)
+        printf("[ CBEAR ] <PortManager::SetCustomBaudrate> TIOCGSERIAL failed!\n");
     return false;
   }
 
@@ -118,12 +126,14 @@ bool PortManager::SetCustomBaudrate(int speed) {
   int closest_speed = ss.baud_base / ss.custom_divisor;
 
   if (closest_speed < speed * 98 / 100 || closest_speed > speed * 102 / 100) {
-    printf("[ CBEAR ] <PortManager::SetCustomBaudrate> Cannot set speed to %d, closest is %d.\n", speed, closest_speed);
+    if (debug_mode_)
+        printf("[ CBEAR ] <PortManager::SetCustomBaudrate> Cannot set speed to %d, closest is %d.\n", speed, closest_speed);
     return false;
   }
 
   if (ioctl(socket_fd, TIOCSSERIAL, &ss) < 0) {
-    printf("[ CBEAR ] <PortManager::SetCustomBaudrate> TIOCSSERIAL failed.\n");
+    if (debug_mode_)
+        printf("[ CBEAR ] <PortManager::SetCustomBaudrate> TIOCSSERIAL failed.\n");
   }
 
   tx_time_per_byte = (1000.0 / (double) speed) * 10.0;

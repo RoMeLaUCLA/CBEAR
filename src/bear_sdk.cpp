@@ -59,22 +59,40 @@
 
 using namespace bear;
 
-BEAR::BEAR(const char *portName, int baudrate)
+BEAR::BEAR(const char *portName, int baudrate, const bool autoconnect, const bool debug)
     : portName_{portName},
+      debug_mode_(debug),
       baudrate_{baudrate},
-      packetManager_{bear::PacketManager()},
-      portManager_{bear::PortManager(portName_, baudrate)} {
-  connect();
+      packetManager_{bear::PacketManager(debug)},
+      portManager_{bear::PortManager(portName_, baudrate, debug)} {
+  if (autoconnect)
+    Connect();
 }
 
-void BEAR::connect() {
+bool BEAR::Connect() {
   if (portManager_.OpenPort()) {
-    printf("Success! Port opened!\n");
-    printf(" - Device Name: %s\n", portName_);
-    printf(" - Baudrate: %d\n\n", portManager_.GetBaudRate());
+    if (debug_mode_)
+    {
+        printf("Success! Port opened!\n");
+        printf(" - Device Name: %s\n", portName_);
+        printf(" - Baudrate: %d\n\n", portManager_.GetBaudRate());
+    }
+    return true;
   } else {
-    printf("Failed to open port! [%s]\n", portName_);
+    if (debug_mode_)
+    {
+        printf("Failed to open port! [%s]\n", portName_);
+    }
   }
+  return false;
+}
+
+void BEAR::Disconnect() {
+    portManager_.ClosePort();
+}
+
+bool BEAR::IsConnected() {
+    return portManager_.IsPortOpen();
 }
 
 uint8_t BEAR::GetErrorCode() {
