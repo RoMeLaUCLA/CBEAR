@@ -593,7 +593,7 @@ std::vector<std::vector<float>> BEAR::BulkRead(std::vector<uint8_t> mIDs, std::v
   std::vector<std::vector<float>> ret_vec;
   std::vector<uint8_t> empty_vec;
   std::vector<std::vector<uint32_t>> empty_vec_uint32;
-  packetManager_.BulkCommunication(&portManager_, mIDs, read_add, empty_vec, empty_vec_uint32, ret_vec, &bear_error);
+  bulk_error_ = packetManager_.BulkCommunication(&portManager_, mIDs, read_add, empty_vec, empty_vec_uint32, ret_vec, &bear_error);
   return ret_vec;
 }
 
@@ -611,13 +611,14 @@ bool BEAR::BulkWrite(std::vector<uint8_t> mIDs,
     data_uint32.push_back(data_uint32_i);
     data_uint32_i.erase(data_uint32_i.begin(), data_uint32_i.end());
   }
-  if (packetManager_.BulkCommunication(&portManager_,
+  bulk_error_ = packetManager_.BulkCommunication(&portManager_,
                                        mIDs,
                                        empty_uint,
                                        write_add,
                                        data_uint32,
                                        empty_ret_vec,
-                                       &bear_error) == COMM_SUCCESS)
+                                       &bear_error);
+  if ( bulk_error_ == COMM_SUCCESS )
     return true;
   return false;
 }
@@ -638,13 +639,13 @@ std::vector<std::vector<float>> BEAR::BulkReadWrite(std::vector<uint8_t> mIDs,
     data_uint32_i.erase(data_uint32_i.begin(), data_uint32_i.end());
   }
 
-  packetManager_.BulkCommunication(&portManager_,
-                                   mIDs,
-                                   read_add,
-                                   write_add,
-                                   data_uint32,
-                                   ret_vec,
-                                   &bear_error);
+  bulk_error_ = packetManager_.BulkCommunication(&portManager_,
+                                                 mIDs,
+                                                 read_add,
+                                                 write_add,
+                                                 data_uint32,
+                                                 ret_vec,
+                                                 &bear_error);
   return ret_vec;
 }
 
@@ -655,4 +656,9 @@ uint32_t BEAR::floatToUint32(float input) {
   static_assert(sizeof(float) == sizeof(uint32_t), "Float and uint32 are not the same size in your setup!");
   auto *pInt = reinterpret_cast<uint32_t *>(&input);
   return *pInt;
+}
+
+int BEAR::GetBulkError() const
+{
+  return bulk_error_;
 }

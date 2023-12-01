@@ -105,7 +105,7 @@ int PacketManager::WritePacket(PortManager *port, uint8_t *packet) {
 //  }
 
   // Write the actual packet via PortManager
-  port->ClearPort();
+  port->ClearIOPort();
   write_pkt_len = port->WritePort(packet, total_pkt_len);
   if (total_pkt_len != write_pkt_len) // Write and written should be same
   {
@@ -122,6 +122,10 @@ int PacketManager::ReadPacket(PortManager *port, uint8_t *packet) {
   uint8_t checksum = 0;
   uint8_t rx_len = 0;
   uint8_t wait_len = 6; // [HEADER0, HEADER1, ID, LENGTH, ERROR, CHKSUM]
+
+  const double MAX_TIMEOUT = 0.005;
+
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
   while (true) {
     rx_len += port->ReadPort(&packet[rx_len], wait_len - rx_len);
@@ -153,8 +157,6 @@ int PacketManager::ReadPacket(PortManager *port, uint8_t *packet) {
           continue;
         }
 
-        // TODO: Include packet timeout check
-
         // Calculate checksum
         for (uint16_t jdx = 2; jdx < wait_len - 1; jdx++)
           checksum += packet[jdx];
@@ -174,9 +176,13 @@ int PacketManager::ReadPacket(PortManager *port, uint8_t *packet) {
         rx_len -= idx;
       }
     } else {
-      // TODO: Include timeout check
-//      std::cerr << "[ CBEAR ] Couldn't return status packet. Timing out..." << std::endl;
-      continue;
+      double tm_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1e9;
+      // std::cerr << "[ CBEAR ] Couldn't return status packet. Timing out..." << tm_duration << std::endl;
+      if ( tm_duration > MAX_TIMEOUT )
+      {
+        port->in_use_ = false;
+        return COMM_RX_FAIL;
+      }
     }
   }
   port->in_use_ = false;
@@ -194,6 +200,9 @@ int PacketManager::ReadBulkPacket(PortManager *port, uint8_t num_motors, uint8_t
 //   uint8_t checksum = 0;
   uint8_t rx_len = 0;
   uint8_t wait_len = 4; // [HEADER0, HEADER1, ID, LENGTH, ..., ...]
+
+  const double MAX_TIMEOUT = 0.005;
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
 //   int ticker_initial = 0;
   while (true) {
@@ -219,6 +228,16 @@ int PacketManager::ReadBulkPacket(PortManager *port, uint8_t num_motors, uint8_t
         for (uint16_t s = 0; s < rx_len - idx; s++)
           packet[s] = packet[idx + s];
         rx_len -= idx;
+      }
+    }
+    else
+    {
+      double tm_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1e9;
+      // std::cerr << "[ CBEAR ] Couldn't return status packet. Timing out..." << tm_duration << std::endl;
+      if ( tm_duration > MAX_TIMEOUT )
+      {
+        port->in_use_ = false;
+        return COMM_TX_FAIL;
       }
     }
 
@@ -258,8 +277,6 @@ int PacketManager::wrPacket(PortManager *port, uint8_t *wpacket, uint8_t *rpacke
   result = WritePacket(port, wpacket);
   if (result != COMM_SUCCESS)
     return result;
-
-  // TODO: Include timeout?
 
   // Read packet
   do {
@@ -672,6 +689,7 @@ int PacketManager::BulkCommunication(PortManager *port,
     }
     if (mdx == MAX_COMM_ATTEMPT) {
       result = COMM_RX_FAIL;
+      free(pkt_tx);
       return result;
     }
 

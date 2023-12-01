@@ -23,6 +23,7 @@ PortManager::PortManager(const char *port_name, const int baudrate, const bool d
 }
 
 bool PortManager::OpenPort() {
+  ClearIOPort();
   return SetBaudRate(baudrate_);
 }
 

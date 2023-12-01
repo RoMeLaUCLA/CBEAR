@@ -25,6 +25,8 @@ class BEAR {
    */
   uint8_t GetErrorCode();
 
+  int GetBulkError() const;
+
   /*! Attempt to ping a motor.
    *
    * @param mID Motor ID
@@ -188,6 +190,7 @@ private:
   const bool debug_mode_;
   int baudrate_;
   uint8_t bear_error;
+  int bulk_error_ = 0;
   bear::PacketManager packetManager_;
   bear::PortManager portManager_;
 }; // class BEAR
