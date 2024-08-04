@@ -177,9 +177,9 @@ int PacketManager::ReadPacket(PortManager *port, uint8_t *packet) {
       }
     } else {
       double tm_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1e9;
-      // std::cerr << "[ CBEAR ] Couldn't return status packet. Timing out..." << tm_duration << std::endl;
       if ( tm_duration > MAX_TIMEOUT )
       {
+        std::cerr << "[ CBEAR ] Couldn't return status packet. Timing out..." << tm_duration << std::endl;
         port->in_use_ = false;
         return COMM_RX_FAIL;
       }
@@ -233,9 +233,9 @@ int PacketManager::ReadBulkPacket(PortManager *port, uint8_t num_motors, uint8_t
     else
     {
       double tm_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1e9;
-      // std::cerr << "[ CBEAR ] Couldn't return status packet. Timing out..." << tm_duration << std::endl;
       if ( tm_duration > MAX_TIMEOUT )
       {
+        std::cerr << "[ CBEAR ] Couldn't return status packet. Timing out..." << tm_duration << std::endl;
         port->in_use_ = false;
         return COMM_TX_FAIL;
       }
@@ -705,6 +705,9 @@ int PacketManager::BulkCommunication(PortManager *port,
     *error = 128;
     for (uint8_t ii = 0; ii < num_motors; ii++) {
       uint8_t m_offset = ii * len_ret_pkt;
+
+      static constexpr int warning_mask = 1 | 2;
+      static constexpr int error_mask = 255 ^ warning_mask;
 
       ret_single.push_back(pkt_rx[m_offset + PKT_ID]);
       uint8_t err_single = pkt_rx[m_offset + PKT_ERROR];
